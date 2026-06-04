@@ -1,0 +1,456 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import styles from "./review.module.css";
+import { createClient } from "@/lib/supabase/client";
+
+/* ------------------------------------------------------------------ */
+/* Types                                                               */
+/* ------------------------------------------------------------------ */
+interface UploadedFile {
+  id: string;
+  batch_id: string;
+  file_name: string;
+  storage_path: string;
+  processing_status: string;
+}
+
+interface Question {
+  id: string;
+  question_text: string | null;
+  question_image_path: string | null;
+  question_mode: "text" | "image";
+  question_type: string;
+  marks: number | null;
+  subject: string;
+  chapter: string | null;
+  class_grade: string;
+  approval_status: "pending" | "approved" | "rejected";
+  confidence_score: number | null;
+  source_file_id: string | null;
+}
+
+interface Batch {
+  id: string;
+  name: string | null;
+  file_count: number;
+  status: string;
+  created_at: string;
+}
+
+const QUESTION_TYPES = [
+  { value: "mcq", label: "MCQ" },
+  { value: "short_answer", label: "Short Answer" },
+  { value: "long_answer", label: "Long Answer" },
+  { value: "numerical", label: "Numerical" },
+  { value: "fill_blanks", label: "Fill in the Blanks" },
+  { value: "true_false", label: "True / False" },
+  { value: "assertion_reason", label: "Assertion & Reason" },
+  { value: "match_following", label: "Match the Following" },
+];
+
+/* ------------------------------------------------------------------ */
+/* Component                                                           */
+/* ------------------------------------------------------------------ */
+export default function ReviewPage() {
+  const supabase = createClient();
+
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [activeBatchId, setActiveBatchId] = useState<string | null>(null);
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [currentFileIdx, setCurrentFileIdx] = useState(0);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(100);
+
+  /* ---------- Fetch batches ---------- */
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from("upload_batches")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (data && data.length > 0) {
+        setBatches(data);
+        setActiveBatchId(data[0].id);
+      }
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  /* ---------- Fetch files for active batch ---------- */
+  useEffect(() => {
+    if (!activeBatchId) return;
+    async function loadFiles() {
+      const { data } = await supabase
+        .from("uploaded_files")
+        .select("*")
+        .eq("batch_id", activeBatchId)
+        .order("created_at", { ascending: true });
+      setFiles(data || []);
+      setCurrentFileIdx(0);
+    }
+    loadFiles();
+  }, [activeBatchId]);
+
+  /* ---------- Fetch questions for active file ---------- */
+  useEffect(() => {
+    if (!files.length) return;
+    const file = files[currentFileIdx];
+    if (!file) return;
+    async function loadQuestions() {
+      const { data } = await supabase
+        .from("questions")
+        .select("*")
+        .eq("source_file_id", file.id)
+        .order("created_at", { ascending: true });
+      setQuestions(data || []);
+    }
+    loadQuestions();
+  }, [files, currentFileIdx]);
+
+  /* ---------- Get signed URL for source image ---------- */
+  useEffect(() => {
+    if (!files.length) { setImageUrl(null); return; }
+    const file = files[currentFileIdx];
+    if (!file) return;
+    async function getUrl() {
+      const { data } = await supabase.storage
+        .from("uploads")
+        .createSignedUrl(file.storage_path, 3600);
+      setImageUrl(data?.signedUrl || null);
+    }
+    getUrl();
+  }, [files, currentFileIdx]);
+
+  /* ---------- Actions ---------- */
+  const updateQuestion = useCallback(async (id: string, updates: Partial<Question>) => {
+    await supabase.from("questions").update(updates).eq("id", id);
+    setQuestions((prev) =>
+      prev.map((q) => (q.id === id ? { ...q, ...updates } : q))
+    );
+  }, []);
+
+  const approve = (id: string) => updateQuestion(id, { approval_status: "approved" });
+  const reject = (id: string) => updateQuestion(id, { approval_status: "rejected" });
+
+  const startEdit = (q: Question) => {
+    setEditingId(q.id);
+    setEditText(q.question_text || "");
+  };
+  const saveEdit = (id: string) => {
+    updateQuestion(id, { question_text: editText });
+    setEditingId(null);
+  };
+  const cancelEdit = () => setEditingId(null);
+
+  const approveAll = async () => {
+    const pendingIds = questions.filter((q) => q.approval_status === "pending").map((q) => q.id);
+    if (!pendingIds.length) return;
+    for (const id of pendingIds) {
+      await approve(id);
+    }
+  };
+
+  /* ---------- Stats ---------- */
+  const pendingCount = questions.filter((q) => q.approval_status === "pending").length;
+  const approvedCount = questions.filter((q) => q.approval_status === "approved").length;
+  const rejectedCount = questions.filter((q) => q.approval_status === "rejected").length;
+
+  const currentFile = files[currentFileIdx];
+
+  /* ---------- Confidence badge ---------- */
+  const confBadge = (score: number | null) => {
+    if (score === null) return null;
+    const pct = Math.round(score * 100);
+    let cls = styles.confLow;
+    if (pct >= 85) cls = styles.confHigh;
+    else if (pct >= 60) cls = styles.confMed;
+    return <span className={`${styles.confidenceBadge} ${cls}`}>{pct}%</span>;
+  };
+
+  /* ---------- Render ---------- */
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.loadingSpinner}>
+          <div className={styles.spinner} />
+          <div className={styles.loadingText}>Loading review queue…</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!batches.length) {
+    return (
+      <div className={styles.page}>
+        <header className={styles.header}>
+          <div className={styles.headerLeft}>
+            <h1 className={styles.title}>Review Queue</h1>
+            <p className={styles.subtitle}>Verify extracted questions before adding them to your bank.</p>
+          </div>
+        </header>
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIcon}>🔍</div>
+          <div className={styles.emptyTitle}>No uploads to review</div>
+          <div className={styles.emptyDesc}>
+            <Link href="/upload" style={{ color: "var(--primary-light)", fontWeight: 600 }}>Upload documents</Link>{" "}
+            first, then come back to review extracted questions.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.page}>
+      {/* Header */}
+      <header className={styles.header}>
+        <div className={styles.headerLeft}>
+          <h1 className={styles.title}>Review Queue</h1>
+          <p className={styles.subtitle}>Verify extracted questions before adding them to your bank.</p>
+        </div>
+        <div className={styles.headerActions}>
+          <button
+            className="btn btn-success btn-sm"
+            onClick={approveAll}
+            disabled={pendingCount === 0}
+          >
+            ✓ Approve All ({pendingCount})
+          </button>
+        </div>
+      </header>
+
+      {/* Stats */}
+      {questions.length > 0 && (
+        <div className={styles.statsBar}>
+          <div className={styles.stat}>
+            <span className={`${styles.statDot} ${styles.dotPending}`} />
+            {pendingCount} Pending
+          </div>
+          <div className={styles.stat}>
+            <span className={`${styles.statDot} ${styles.dotApproved}`} />
+            {approvedCount} Approved
+          </div>
+          <div className={styles.stat}>
+            <span className={`${styles.statDot} ${styles.dotRejected}`} />
+            {rejectedCount} Rejected
+          </div>
+        </div>
+      )}
+
+      {/* Batch Selector */}
+      <div className={styles.batchSelector}>
+        {batches.map((b) => (
+          <button
+            key={b.id}
+            className={`${styles.batchChip} ${b.id === activeBatchId ? styles.batchChipActive : ""}`}
+            onClick={() => setActiveBatchId(b.id)}
+          >
+            {b.name || "Unnamed Batch"}
+            <span className={styles.batchCount}>{b.file_count}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* File Navigator */}
+      {files.length > 0 && (
+        <div className={styles.fileNav}>
+          <button
+            className={styles.fileNavBtn}
+            disabled={currentFileIdx === 0}
+            onClick={() => setCurrentFileIdx((i) => i - 1)}
+          >
+            ‹
+          </button>
+          <span className={styles.fileNavInfo}>
+            File {currentFileIdx + 1} of {files.length}
+          </span>
+          <button
+            className={styles.fileNavBtn}
+            disabled={currentFileIdx >= files.length - 1}
+            onClick={() => setCurrentFileIdx((i) => i + 1)}
+          >
+            ›
+          </button>
+          {currentFile && (
+            <span className={styles.fileNavName}>{currentFile.file_name}</span>
+          )}
+        </div>
+      )}
+
+      {/* Two-Column Layout */}
+      <div className={styles.reviewLayout}>
+        {/* Left: Source Image */}
+        <div className={styles.sourcePanel}>
+          <div className={styles.panelHeader}>
+            <span>Source Image</span>
+            <div className={styles.zoomControls}>
+              <button className={styles.zoomBtn} onClick={() => setZoom((z) => Math.max(25, z - 25))}>−</button>
+              <span className={styles.zoomLevel}>{zoom}%</span>
+              <button className={styles.zoomBtn} onClick={() => setZoom((z) => Math.min(300, z + 25))}>+</button>
+              <button className={styles.zoomBtn} onClick={() => setZoom(100)} title="Reset zoom">↺</button>
+            </div>
+          </div>
+          <div className={styles.imageContainer}>
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt="Source document"
+                className={styles.sourceImage}
+                style={{ width: `${zoom}%` }}
+                draggable={false}
+              />
+            ) : (
+              <div className={styles.loadingSpinner}>
+                <div className={styles.spinner} />
+                <div className={styles.loadingText}>Loading image…</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Questions */}
+        <div className={styles.questionsPanel}>
+          {questions.length === 0 ? (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyIcon}>📝</div>
+              <div className={styles.emptyTitle}>No questions extracted yet</div>
+              <div className={styles.emptyDesc}>
+                OCR processing hasn&apos;t run for this file yet. Questions will appear here once the backend processes it.
+              </div>
+            </div>
+          ) : (
+            questions.map((q, idx) => (
+              <div
+                key={q.id}
+                className={`${styles.questionCard} ${
+                  q.approval_status === "approved" ? styles.questionCardApproved : ""
+                } ${q.approval_status === "rejected" ? styles.questionCardRejected : ""}`}
+              >
+                {/* Header */}
+                <div className={styles.questionHeader}>
+                  <span className={styles.questionNumber}>Q{idx + 1}</span>
+                  <div className={styles.questionBadges}>
+                    {q.question_mode === "image" && (
+                      <span className={styles.imageModeTag}>📷 Image</span>
+                    )}
+                    {confBadge(q.confidence_score)}
+                    <span className={`badge ${
+                      q.approval_status === "approved" ? "badge-success" :
+                      q.approval_status === "rejected" ? "badge-danger" :
+                      "badge-warning"
+                    }`}>
+                      {q.approval_status}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Body */}
+                <div className={styles.questionBody}>
+                  {editingId === q.id ? (
+                    <textarea
+                      className={styles.questionTextEditing}
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      autoFocus
+                    />
+                  ) : (
+                    <div className={styles.questionText}>
+                      {q.question_text || "[No text — image-only question]"}
+                    </div>
+                  )}
+                </div>
+
+                {/* Metadata Editor */}
+                <div className={styles.metaEditor}>
+                  <div className={styles.metaField}>
+                    <label>Type</label>
+                    <select
+                      value={q.question_type}
+                      onChange={(e) => updateQuestion(q.id, { question_type: e.target.value })}
+                    >
+                      {QUESTION_TYPES.map((t) => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className={styles.metaField}>
+                    <label>Marks</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={q.marks ?? ""}
+                      placeholder="—"
+                      onChange={(e) =>
+                        updateQuestion(q.id, { marks: e.target.value ? parseInt(e.target.value) : null })
+                      }
+                    />
+                  </div>
+                  <div className={styles.metaField}>
+                    <label>Subject</label>
+                    <input
+                      type="text"
+                      value={q.subject}
+                      placeholder="e.g. Physics"
+                      onChange={(e) => updateQuestion(q.id, { subject: e.target.value })}
+                    />
+                  </div>
+                  <div className={styles.metaField}>
+                    <label>Chapter</label>
+                    <input
+                      type="text"
+                      value={q.chapter ?? ""}
+                      placeholder="e.g. Ch 3"
+                      onChange={(e) => updateQuestion(q.id, { chapter: e.target.value || null })}
+                    />
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className={styles.questionActions}>
+                  <button
+                    className={`${styles.actionBtn} ${styles.approveBtn} ${
+                      q.approval_status === "approved" ? styles.approvedBtn : ""
+                    }`}
+                    onClick={() => approve(q.id)}
+                  >
+                    ✓ Approve
+                  </button>
+                  <button
+                    className={`${styles.actionBtn} ${styles.rejectBtn} ${
+                      q.approval_status === "rejected" ? styles.rejectedBtn : ""
+                    }`}
+                    onClick={() => reject(q.id)}
+                  >
+                    ✗ Reject
+                  </button>
+                  {editingId === q.id ? (
+                    <>
+                      <button className={`${styles.actionBtn} ${styles.approveBtn}`} onClick={() => saveEdit(q.id)}>
+                        💾 Save
+                      </button>
+                      <button className={`${styles.actionBtn}`} onClick={cancelEdit}>
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button className={`${styles.actionBtn} ${styles.editBtn}`} onClick={() => startEdit(q)}>
+                      ✎ Edit
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

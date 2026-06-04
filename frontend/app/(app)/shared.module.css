@@ -1,0 +1,15 @@
+.page { animation: fadeIn 0.35s ease forwards; }
+.header { margin-bottom: var(--space-xl); }
+.title { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em; }
+.subtitle { color: var(--text-secondary); margin-top: var(--space-xs); font-size: 0.9rem; }
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3xl);
+  text-align: center;
+}
+.emptyIcon { font-size: 3rem; margin-bottom: var(--space-md); opacity: 0.5; }
+.emptyTitle { font-size: 1.1rem; font-weight: 600; color: var(--text-secondary); }
+.emptyDesc { font-size: 0.85rem; color: var(--text-tertiary); margin-top: var(--space-xs); }

@@ -1,0 +1,9 @@
+# Local development requirements (Windows-friendly)
+fastapi==0.115.0
+uvicorn==0.30.0
+python-multipart==0.0.9
+httpx==0.27.0
+Pillow==10.4.0
+groq==0.9.0
+pydantic-settings==2.4.0
+numpy>=2.0.0
