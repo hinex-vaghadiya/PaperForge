@@ -60,3 +60,8 @@ async def health_check():
         "ocr_engine": "paddleocr" if _ocr_available else "mock",
         "pdf_engine": "weasyprint" if _pdf_available else "html_fallback",
     }
+
+@app.get("/")
+async def root():
+    """Root endpoint for HF Spaces UI."""
+    return {"message": "PaperForge Backend API is running successfully!"}
