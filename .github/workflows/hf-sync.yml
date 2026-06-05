@@ -8,7 +8,7 @@ jobs:
   sync-to-hub:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Push to Hugging Face Hub
@@ -18,4 +18,8 @@ jobs:
           git config --global user.email "bot@huggingface.co"
           git config --global user.name "Hugging Face Sync"
           git remote add hf https://hinex-07:$HF_TOKEN@huggingface.co/spaces/hinex-07/paperforge-backend
-          git push hf main --force
+          for i in 1 2 3; do
+            git push hf main --force && break
+            echo "Push failed (attempt $i), waiting 15s..."
+            sleep 15
+          done
