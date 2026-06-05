@@ -1,9 +1,7 @@
 """
 FastAPI entry point for Hinex PaperForge API.
 
-Supports two modes:
-- Full mode (Docker/HF Spaces): PaddleOCR + WeasyPrint
-- Local mode (Windows): Mock OCR + HTML-based PDF fallback
+Uses Groq Vision for OCR and WeasyPrint for PDF generation.
 """
 
 from fastapi import FastAPI
@@ -15,7 +13,7 @@ settings = get_settings()
 app = FastAPI(
     title=settings.app_name,
     description="OCR processing and PDF generation API for Hinex PaperForge",
-    version="1.0.0",
+    version="2.0.0",
 )
 
 # CORS — allow frontend origins
@@ -33,16 +31,8 @@ from app.routers import ocr, pdf
 app.include_router(ocr.router, prefix="/api/v1/ocr", tags=["OCR"])
 app.include_router(pdf.router, prefix="/api/v1/pdf", tags=["PDF"])
 
-# Check which services are available
-_ocr_available = False
+# Check PDF engine availability
 _pdf_available = False
-
-try:
-    from paddleocr import PaddleOCR
-    _ocr_available = True
-except ImportError:
-    pass
-
 try:
     from weasyprint import HTML
     _pdf_available = True
@@ -56,12 +46,13 @@ async def health_check():
     return {
         "status": "ok",
         "service": settings.app_name,
-        "version": "1.0.0",
-        "ocr_engine": "paddleocr" if _ocr_available else "mock",
+        "version": "2.0.0",
+        "ocr_engine": "groq_vision (llama-4-scout)",
         "pdf_engine": "weasyprint" if _pdf_available else "html_fallback",
     }
+
 
 @app.get("/")
 async def root():
     """Root endpoint for HF Spaces UI."""
-    return {"message": "PaperForge Backend API is running successfully!"}
+    return {"message": "PaperForge Backend API v2.0 — Powered by Groq Vision"}

@@ -1,28 +1,23 @@
-# Forwarding Dockerfile for HuggingFace Spaces
-# HF Spaces expects the Dockerfile at the root, so we just copy the backend and run it.
+# Lightweight Dockerfile for PaperForge Backend
+# Uses Groq Vision for OCR — no heavy ML models needed
 
 FROM python:3.11-slim
 
-# Install system dependencies for OpenCV and WeasyPrint
-RUN apt-get update && apt-get install -y \
-    libgl1 \
-    libglib2.0-0 \
+# System deps for WeasyPrint (PDF generation)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
     libffi-dev \
     shared-mime-info \
-    libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /code
 
-# Copy the backend code and requirements
-COPY ./backend /code/
-
 # Install Python dependencies
+COPY ./backend/requirements.txt /code/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-# Create a non-root user (HuggingFace requirement)
+# Create non-root user (HuggingFace requirement)
 RUN useradd -m -u 1000 user
 USER user
 ENV HOME=/home/user \
@@ -31,5 +26,4 @@ ENV HOME=/home/user \
 WORKDIR $HOME/app
 COPY --chown=user ./backend $HOME/app
 
-# Run the FastAPI server
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]

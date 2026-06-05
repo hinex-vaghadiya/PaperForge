@@ -1,16 +1,14 @@
 """
 OCR processing endpoints.
 
-Handles file processing through the pipeline:
-Image → Preprocess → PaddleOCR → Groq AI Structuring → Segmented Questions
+Pipeline: Image → Groq Vision OCR → Groq AI Structuring → Segmented Questions
 """
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import httpx
 
-from app.services.preprocessor import preprocess_image, estimate_quality
-from app.services.ocr_engine import extract_text
+from app.services.ocr_engine import extract_text_from_image
 from app.services.ai_structurer import structure_ocr_text
 
 router = APIRouter()
@@ -27,25 +25,17 @@ class OCRBatchRequest(BaseModel):
     file_urls: list[str]
 
 
-class ExtractedQuestion(BaseModel):
-    """A question extracted from OCR processing."""
-    question_text: str
-    question_type: str = "short_answer"
-    marks: int | None = None
-    sub_questions: list[dict] = []
-
-
 class OCRResponse(BaseModel):
     """Response from OCR processing."""
     raw_ocr_text: str
     questions: list[dict]
     confidence: float
-    quality: dict = {}
+    engine: str = "groq_vision"
 
 
 async def download_file(url: str) -> bytes:
     """Download a file from a URL (typically Supabase Storage)."""
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=60) as client:
         response = await client.get(url)
         response.raise_for_status()
         return response.content
@@ -53,42 +43,27 @@ async def download_file(url: str) -> bytes:
 
 async def process_single_image(image_bytes: bytes) -> dict:
     """Run the full OCR pipeline on a single image."""
-    # 1. Quality check
-    quality = estimate_quality(image_bytes)
-
-    # 2. Preprocess
-    preprocessed = preprocess_image(image_bytes)
-
-    # 3. OCR
-    ocr_result = extract_text(preprocessed)
+    
+    # 1. Vision OCR — send image directly to Groq
+    ocr_result = extract_text_from_image(image_bytes)
 
     if not ocr_result["raw_text"]:
         return {
             "raw_ocr_text": "",
             "questions": [],
             "confidence": 0.0,
-            "quality": quality,
+            "engine": ocr_result.get("engine", "groq_vision"),
+            "error": ocr_result.get("error", "No text extracted"),
         }
 
-    # 4. AI Structuring (only if confidence is decent)
-    questions = []
-    if ocr_result["confidence"] > 0.5:
-        questions = structure_ocr_text(ocr_result["raw_text"])
-    else:
-        # Low confidence — return raw text as single block
-        questions = [{
-            "question_text": ocr_result["raw_text"],
-            "question_type": "short_answer",
-            "marks": None,
-            "sub_questions": [],
-            "low_confidence": True,
-        }]
+    # 2. AI Structuring — segment the raw text into questions
+    questions = structure_ocr_text(ocr_result["raw_text"])
 
     return {
         "raw_ocr_text": ocr_result["raw_text"],
         "questions": questions,
         "confidence": ocr_result["confidence"],
-        "quality": quality,
+        "engine": ocr_result.get("engine", "groq_vision"),
     }
 
 
