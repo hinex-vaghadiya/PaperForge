@@ -75,7 +75,7 @@ def extract_text_from_image(image_bytes: bytes) -> dict:
                 }
             ],
             temperature=0.0,  # Zero temperature for exact extraction
-            max_tokens=4096,
+            max_tokens=8192,
         )
 
         raw_text = completion.choices[0].message.content or ""
