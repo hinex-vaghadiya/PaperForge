@@ -53,6 +53,31 @@ const QUESTION_TYPES = [
 /* ------------------------------------------------------------------ */
 /* Component                                                           */
 /* ------------------------------------------------------------------ */
+
+const TYPE_LABELS: Record<string, string> = {
+  fill_blanks: "📝 Fill in the Blanks",
+  true_false: "✅ True or False",
+  match_following: "🔗 Match the Following",
+  mcq: "🔘 Multiple Choice",
+  short_answer: "📋 Short Answer",
+  long_answer: "📄 Long Answer",
+  numerical: "🔢 Numerical",
+  assertion_reason: "⚖️ Assertion & Reason",
+};
+
+function groupByType(questions: Question[]): { type: string; label: string; questions: Question[] }[] {
+  const groups: Record<string, Question[]> = {};
+  for (const q of questions) {
+    const t = q.question_type || "short_answer";
+    if (!groups[t]) groups[t] = [];
+    groups[t].push(q);
+  }
+  // Sort by a fixed order
+  const order = ["fill_blanks", "true_false", "match_following", "mcq", "short_answer", "long_answer", "numerical", "assertion_reason"];
+  return order
+    .filter((t) => groups[t])
+    .map((t) => ({ type: t, label: TYPE_LABELS[t] || t, questions: groups[t] }));
+}
 export default function ReviewPage() {
   const supabase = createClient();
 
@@ -315,7 +340,7 @@ export default function ReviewPage() {
           </div>
         </div>
 
-        {/* Right: Questions */}
+        {/* Right: Questions grouped by type */}
         <div className={styles.questionsPanel}>
           {questions.length === 0 ? (
             <div className={styles.emptyState}>
@@ -326,126 +351,121 @@ export default function ReviewPage() {
               </div>
             </div>
           ) : (
-            questions.map((q, idx) => (
-              <div
-                key={q.id}
-                className={`${styles.questionCard} ${
-                  q.approval_status === "approved" ? styles.questionCardApproved : ""
-                } ${q.approval_status === "rejected" ? styles.questionCardRejected : ""}`}
-              >
-                {/* Header */}
-                <div className={styles.questionHeader}>
-                  <span className={styles.questionNumber}>Q{idx + 1}</span>
-                  <div className={styles.questionBadges}>
-                    {q.question_mode === "image" && (
-                      <span className={styles.imageModeTag}>📷 Image</span>
-                    )}
-                    {confBadge(q.confidence_score)}
-                    <span className={`badge ${
-                      q.approval_status === "approved" ? "badge-success" :
-                      q.approval_status === "rejected" ? "badge-danger" :
-                      "badge-warning"
-                    }`}>
-                      {q.approval_status}
-                    </span>
-                  </div>
+            groupByType(questions).map((group) => (
+              <div key={group.type} className={styles.typeSection}>
+                <div className={styles.typeSectionHeader}>
+                  <span className={styles.typeSectionTitle}>{group.label}</span>
+                  <span className={styles.typeSectionCount}>{group.questions.length} question{group.questions.length !== 1 ? "s" : ""}</span>
                 </div>
-
-                {/* Body */}
-                <div className={styles.questionBody}>
-                  {editingId === q.id ? (
-                    <textarea
-                      className={styles.questionTextEditing}
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      autoFocus
-                    />
-                  ) : (
-                    <div className={styles.questionText}>
-                      {q.question_text || "[No text — image-only question]"}
+                {group.questions.map((q, idx) => (
+                  <div
+                    key={q.id}
+                    className={`${styles.questionCard} ${
+                      q.approval_status === "approved" ? styles.questionCardApproved : ""
+                    } ${q.approval_status === "rejected" ? styles.questionCardRejected : ""}`}
+                  >
+                    {/* Header */}
+                    <div className={styles.questionHeader}>
+                      <span className={styles.questionNumber}>{idx + 1}</span>
+                      <div className={styles.questionBadges}>
+                        {q.question_mode === "image" && (
+                          <span className={styles.imageModeTag}>📷 Image</span>
+                        )}
+                        {confBadge(q.confidence_score)}
+                        <span className={`badge ${
+                          q.approval_status === "approved" ? "badge-success" :
+                          q.approval_status === "rejected" ? "badge-danger" :
+                          "badge-warning"
+                        }`}>
+                          {q.approval_status}
+                        </span>
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Metadata Editor */}
-                <div className={styles.metaEditor}>
-                  <div className={styles.metaField}>
-                    <label>Type</label>
-                    <select
-                      value={q.question_type}
-                      onChange={(e) => updateQuestion(q.id, { question_type: e.target.value })}
-                    >
-                      {QUESTION_TYPES.map((t) => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className={styles.metaField}>
-                    <label>Marks</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="20"
-                      value={q.marks ?? ""}
-                      placeholder="—"
-                      onChange={(e) =>
-                        updateQuestion(q.id, { marks: e.target.value ? parseInt(e.target.value) : null })
-                      }
-                    />
-                  </div>
-                  <div className={styles.metaField}>
-                    <label>Subject</label>
-                    <input
-                      type="text"
-                      value={q.subject}
-                      placeholder="e.g. Physics"
-                      onChange={(e) => updateQuestion(q.id, { subject: e.target.value })}
-                    />
-                  </div>
-                  <div className={styles.metaField}>
-                    <label>Chapter</label>
-                    <input
-                      type="text"
-                      value={q.chapter ?? ""}
-                      placeholder="e.g. Ch 3"
-                      onChange={(e) => updateQuestion(q.id, { chapter: e.target.value || null })}
-                    />
-                  </div>
-                </div>
+                    {/* Body */}
+                    <div className={styles.questionBody}>
+                      {editingId === q.id ? (
+                        <textarea
+                          className={styles.questionTextEditing}
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          autoFocus
+                        />
+                      ) : (
+                        <div className={styles.questionText}>
+                          {q.question_text || "[No text — image-only question]"}
+                        </div>
+                      )}
+                    </div>
 
-                {/* Actions */}
-                <div className={styles.questionActions}>
-                  <button
-                    className={`${styles.actionBtn} ${styles.approveBtn} ${
-                      q.approval_status === "approved" ? styles.approvedBtn : ""
-                    }`}
-                    onClick={() => approve(q.id)}
-                  >
-                    ✓ Approve
-                  </button>
-                  <button
-                    className={`${styles.actionBtn} ${styles.rejectBtn} ${
-                      q.approval_status === "rejected" ? styles.rejectedBtn : ""
-                    }`}
-                    onClick={() => reject(q.id)}
-                  >
-                    ✗ Reject
-                  </button>
-                  {editingId === q.id ? (
-                    <>
-                      <button className={`${styles.actionBtn} ${styles.approveBtn}`} onClick={() => saveEdit(q.id)}>
-                        💾 Save
+                    {/* Metadata Editor */}
+                    <div className={styles.metaEditor}>
+                      <div className={styles.metaField}>
+                        <label>Type</label>
+                        <select
+                          value={q.question_type}
+                          onChange={(e) => updateQuestion(q.id, { question_type: e.target.value })}
+                        >
+                          {QUESTION_TYPES.map((t) => (
+                            <option key={t.value} value={t.value}>{t.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className={styles.metaField}>
+                        <label>Subject</label>
+                        <input
+                          type="text"
+                          value={q.subject}
+                          placeholder="e.g. Physics"
+                          onChange={(e) => updateQuestion(q.id, { subject: e.target.value })}
+                        />
+                      </div>
+                      <div className={styles.metaField}>
+                        <label>Chapter</label>
+                        <input
+                          type="text"
+                          value={q.chapter ?? ""}
+                          placeholder="e.g. Ch 3"
+                          onChange={(e) => updateQuestion(q.id, { chapter: e.target.value || null })}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className={styles.questionActions}>
+                      <button
+                        className={`${styles.actionBtn} ${styles.approveBtn} ${
+                          q.approval_status === "approved" ? styles.approvedBtn : ""
+                        }`}
+                        onClick={() => approve(q.id)}
+                      >
+                        ✓ Approve
                       </button>
-                      <button className={`${styles.actionBtn}`} onClick={cancelEdit}>
-                        Cancel
+                      <button
+                        className={`${styles.actionBtn} ${styles.rejectBtn} ${
+                          q.approval_status === "rejected" ? styles.rejectedBtn : ""
+                        }`}
+                        onClick={() => reject(q.id)}
+                      >
+                        ✗ Reject
                       </button>
-                    </>
-                  ) : (
-                    <button className={`${styles.actionBtn} ${styles.editBtn}`} onClick={() => startEdit(q)}>
-                      ✎ Edit
-                    </button>
-                  )}
-                </div>
+                      {editingId === q.id ? (
+                        <>
+                          <button className={`${styles.actionBtn} ${styles.approveBtn}`} onClick={() => saveEdit(q.id)}>
+                            💾 Save
+                          </button>
+                          <button className={`${styles.actionBtn}`} onClick={cancelEdit}>
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button className={`${styles.actionBtn} ${styles.editBtn}`} onClick={() => startEdit(q)}>
+                          ✎ Edit
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             ))
           )}

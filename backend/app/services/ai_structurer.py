@@ -62,7 +62,7 @@ Return a JSON object with this structure:
   ]
 }
 
-If marks are not explicitly mentioned next to a question, set marks to null.
+ALWAYS set marks to null — the teacher will assign marks later when building the paper. Do NOT extract marks from the image.
 If a question has sub-parts like (a), (b), (c), include them in sub_questions array.
 
 REMEMBER: Extract ALL questions from ALL sections. I expect 15-25+ questions from a typical textbook page."""
