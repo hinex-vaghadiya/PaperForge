@@ -101,6 +101,23 @@ export default function BuilderPage() {
     );
   };
 
+  const updateQuestionMarks = (sectionId: string, questionId: string, marks: number | null) => {
+    setSections((prev) =>
+      prev.map((s) =>
+        s.id === sectionId
+          ? {
+              ...s,
+              questions: s.questions.map((sq) =>
+                sq.question.id === questionId
+                  ? { ...sq, question: { ...sq.question, marks } }
+                  : sq
+              ),
+            }
+          : s
+      )
+    );
+  };
+
   /* Question picker */
   const openPicker = (sectionId: string) => {
     setPickerOpen(sectionId);
@@ -322,7 +339,24 @@ export default function BuilderPage() {
                       </div>
                       <div className={styles.sqMeta}>
                         <span>{sq.question.question_type.replace("_", " ")}</span>
-                        <span>{sq.question.marks ?? "—"} marks</span>
+                        <span className={styles.marksInput}>
+                          <input
+                            type="number"
+                            min="1"
+                            max="20"
+                            value={sq.question.marks ?? ""}
+                            placeholder="—"
+                            onChange={(e) =>
+                              updateQuestionMarks(
+                                section.id,
+                                sq.question.id,
+                                e.target.value ? parseInt(e.target.value) : null
+                              )
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <label>marks</label>
+                        </span>
                       </div>
                     </div>
                     <button
