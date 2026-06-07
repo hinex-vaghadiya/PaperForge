@@ -22,6 +22,7 @@ interface Question {
 interface SectionQuestion {
   question: Question;
   order: number;
+  override_heading?: string;
 }
 
 interface Section {
