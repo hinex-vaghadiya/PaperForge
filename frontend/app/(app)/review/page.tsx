@@ -103,11 +103,22 @@ export default function ReviewPage() {
     async function load() {
       const { data } = await supabase
         .from("upload_batches")
-        .select("*")
+        .select(`
+          *,
+          uploaded_files (id, storage_path)
+        `)
         .order("created_at", { ascending: false });
-      if (data && data.length > 0) {
-        setBatches(data);
-        setActiveBatchId(data[0].id);
+        
+      const activeBatches = (data || []).filter((b: any) => {
+        const activeFiles = b.uploaded_files?.filter((f: any) => f.storage_path !== "deleted") || [];
+        return activeFiles.length > 0;
+      });
+
+      if (activeBatches.length > 0) {
+        setBatches(activeBatches);
+        setActiveBatchId(activeBatches[0].id);
+      } else {
+        setBatches([]);
       }
       setLoading(false);
     }
