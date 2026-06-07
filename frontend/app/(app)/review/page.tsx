@@ -122,6 +122,7 @@ export default function ReviewPage() {
         .from("uploaded_files")
         .select("*")
         .eq("batch_id", activeBatchId)
+        .neq("storage_path", "deleted")
         .order("created_at", { ascending: true });
       setFiles(data || []);
       setCurrentFileIdx(0);
@@ -151,10 +152,6 @@ export default function ReviewPage() {
     const file = files[currentFileIdx];
     if (!file) return;
     async function getUrl() {
-      if (file.storage_path === "deleted") {
-        setImageUrl(null);
-        return;
-      }
       const { data } = await supabase.storage
         .from("uploads")
         .createSignedUrl(file.storage_path, 3600);
@@ -358,13 +355,7 @@ export default function ReviewPage() {
             </div>
           </div>
           <div className={styles.imageContainer}>
-            {currentFile?.storage_path === "deleted" ? (
-              <div className={styles.emptyState} style={{ padding: "var(--space-xl)" }}>
-                <div className={styles.emptyIcon}>🗑️</div>
-                <div className={styles.emptyTitle}>Image Deleted</div>
-                <div className={styles.emptyDesc}>This source image was deleted from storage to save space. Your extracted questions are still preserved.</div>
-              </div>
-            ) : imageUrl ? (
+            {imageUrl ? (
               <img
                 src={imageUrl}
                 alt="Source document"
