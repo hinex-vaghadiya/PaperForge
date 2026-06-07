@@ -27,6 +27,7 @@ const QUESTION_TYPES = [
   { value: "true_false", label: "True/False" },
   { value: "assertion_reason", label: "Assertion & Reason" },
   { value: "match_following", label: "Match Following" },
+  { value: "other", label: "Other" },
 ];
 
 export default function QuestionsPage() {

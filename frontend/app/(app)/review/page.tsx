@@ -48,6 +48,7 @@ const QUESTION_TYPES = [
   { value: "true_false", label: "True / False" },
   { value: "assertion_reason", label: "Assertion & Reason" },
   { value: "match_following", label: "Match the Following" },
+  { value: "other", label: "Other" },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -63,6 +64,7 @@ const TYPE_LABELS: Record<string, string> = {
   long_answer: "📄 Long Answer",
   numerical: "🔢 Numerical",
   assertion_reason: "⚖️ Assertion & Reason",
+  other: "📌 Other",
 };
 
 function groupByType(questions: Question[]): { type: string; label: string; questions: Question[] }[] {

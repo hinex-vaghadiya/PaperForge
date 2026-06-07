@@ -80,6 +80,7 @@ export default function BuilderPage() {
     { value: "true_false", label: "True/False" },
     { value: "assertion_reason", label: "Assertion & Reason" },
     { value: "match_following", label: "Match Following" },
+    { value: "other", label: "Other" },
   ];
 
   /* Load approved questions */
@@ -204,6 +205,7 @@ export default function BuilderPage() {
           question_type: sq.question.question_type,
           marks: sq.question.marks,
           order: sq.order,
+          override_heading: sq.override_heading,
         })),
       }));
 
@@ -362,7 +364,20 @@ export default function BuilderPage() {
                   return (
                     <div key={sq.question.id + idx} className={styles.questionWrapper}>
                       {showGroupHeading && (
-                        <div className={styles.qGroupHeading}>{typeLabel}</div>
+                        <input
+                          className={styles.qGroupHeadingInput}
+                          value={sq.override_heading ?? typeLabel}
+                          placeholder={typeLabel}
+                          onChange={(e) => {
+                            setSections(prev => prev.map(s => {
+                              if (s.id !== section.id) return s;
+                              return {
+                                ...s,
+                                questions: s.questions.map(q => q.question.id === sq.question.id ? { ...q, override_heading: e.target.value } : q)
+                              };
+                            }));
+                          }}
+                        />
                       )}
                       <div className={styles.sectionQuestion}>
                         <div className={styles.dragHandle}>⠿</div>
