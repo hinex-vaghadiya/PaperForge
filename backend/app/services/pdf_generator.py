@@ -61,10 +61,31 @@ def build_html(data: dict) -> str:
             </div>
         """
 
+        QUESTION_TYPES = {
+            "mcq": "Multiple Choice Questions",
+            "short_answer": "Short Answer Questions",
+            "long_answer": "Long Answer Questions",
+            "numerical": "Numerical Questions",
+            "fill_blanks": "Fill in the Blanks",
+            "true_false": "True or False",
+            "assertion_reason": "Assertion & Reason",
+            "match_following": "Match the Following"
+        }
+
+        current_type = None
         for q in questions:
             q_text = q.get("question_text", "")
             q_marks = q.get("marks", "")
             q_mode = q.get("question_mode", "text")
+            q_type = q.get("question_type")
+
+            if q_type and q_type != current_type:
+                current_type = q_type
+                type_label = QUESTION_TYPES.get(q_type, q_type.replace("_", " ").title())
+                sections_html += f"""
+                <div class="q-group-heading">{type_label}</div>
+                """
+
 
             if q_mode == "image" and not q_text:
                 sections_html += f"""
@@ -225,6 +246,17 @@ body {
     letter-spacing: 1pt;
 }
 .section-marks { font-size: 9.5pt; font-weight: bold; color: #555; }
+.q-group-heading {
+    font-size: 10.5pt;
+    font-weight: bold;
+    color: #444;
+    margin-top: 14pt;
+    margin-bottom: 8pt;
+    padding-bottom: 4pt;
+    border-bottom: 1pt solid #eee;
+    text-transform: uppercase;
+    letter-spacing: 0.5pt;
+}
 .question {
     display: flex;
     align-items: flex-start;

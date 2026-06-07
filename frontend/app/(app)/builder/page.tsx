@@ -303,7 +303,7 @@ export default function BuilderPage() {
           <input className={styles.fieldInput} value={paperInfo.school_name} onChange={(e) => updateInfo("school_name", e.target.value)} />
         </div>
         <div className={styles.field}>
-          <label className={styles.fieldLabel}>Exam Name</label>
+          <label className={styles.fieldLabel}>Name</label>
           <input className={styles.fieldInput} value={paperInfo.exam_name} placeholder="e.g. Unit Test 3" onChange={(e) => updateInfo("exam_name", e.target.value)} />
         </div>
         <div className={styles.field}>
@@ -354,44 +354,55 @@ export default function BuilderPage() {
                 </div>
               </div>
               <div className={styles.sectionBody}>
-                {section.questions.map((sq, idx) => (
-                  <div key={sq.question.id} className={styles.sectionQuestion}>
-                    <div className={styles.dragHandle}>⠿</div>
-                    <div className={styles.sqContent}>
-                      <div className={styles.sqText}>
-                        {idx + 1}. {sq.question.question_text || "[Image question]"}
-                      </div>
-                      <div className={styles.sqMeta}>
-                        <span>{sq.question.question_type.replace("_", " ")}</span>
-                        <span className={styles.marksInput}>
-                          <input
-                            type="number"
-                            min="1"
-                            max="20"
-                            value={sq.question.marks ?? ""}
-                            placeholder="—"
-                            onChange={(e) =>
-                              updateQuestionMarks(
-                                section.id,
-                                sq.question.id,
-                                e.target.value ? parseInt(e.target.value) : null
-                              )
-                            }
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <label>marks</label>
-                        </span>
+                {section.questions.map((sq, idx) => {
+                  const prevQ = idx > 0 ? section.questions[idx - 1] : null;
+                  const showGroupHeading = !prevQ || prevQ.question.question_type !== sq.question.question_type;
+                  const typeLabel = PICKER_TYPES.find(t => t.value === sq.question.question_type)?.label || sq.question.question_type.replace("_", " ").toUpperCase();
+
+                  return (
+                    <div key={sq.question.id + idx} className={styles.questionWrapper}>
+                      {showGroupHeading && (
+                        <div className={styles.qGroupHeading}>{typeLabel}</div>
+                      )}
+                      <div className={styles.sectionQuestion}>
+                        <div className={styles.dragHandle}>⠿</div>
+                        <div className={styles.sqContent}>
+                          <div className={styles.sqText}>
+                            {idx + 1}. {sq.question.question_text || "[Image question]"}
+                          </div>
+                          <div className={styles.sqMeta}>
+                            <span>{sq.question.question_type.replace("_", " ")}</span>
+                            <span className={styles.marksInput}>
+                              <input
+                                type="number"
+                                min="1"
+                                max="20"
+                                value={sq.question.marks ?? ""}
+                                placeholder="—"
+                                onChange={(e) =>
+                                  updateQuestionMarks(
+                                    section.id,
+                                    sq.question.id,
+                                    e.target.value ? parseInt(e.target.value) : null
+                                  )
+                                }
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <label>marks</label>
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          className={styles.sqRemove}
+                          onClick={() => removeQuestion(section.id, sq.question.id)}
+                          title="Remove from section"
+                        >
+                          ✕
+                        </button>
                       </div>
                     </div>
-                    <button
-                      className={styles.sqRemove}
-                      onClick={() => removeQuestion(section.id, sq.question.id)}
-                      title="Remove from section"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
                 <button className={styles.addQuestionBtn} onClick={() => openPicker(section.id)}>
                   + Add Questions from Bank
                 </button>

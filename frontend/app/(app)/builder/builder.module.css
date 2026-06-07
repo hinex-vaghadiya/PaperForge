@@ -168,6 +168,21 @@
   color: var(--text-tertiary);
 }
 
+.questionWrapper {
+  display: flex;
+  flex-direction: column;
+}
+.qGroupHeading {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: var(--space-md) 0 var(--space-xs) 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-hover);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .addQuestionBtn {
   width: 100%;
   padding: var(--space-md);
