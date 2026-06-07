@@ -36,6 +36,8 @@ export default function QuestionsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filterType, setFilterType] = useState("");
   const [filterSubject, setFilterSubject] = useState("");
+  const [filterChapter, setFilterChapter] = useState("");
+  const [filterGrade, setFilterGrade] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -48,6 +50,8 @@ export default function QuestionsPage() {
 
       if (filterType) query = query.eq("question_type", filterType);
       if (filterSubject) query = query.ilike("subject", `%${filterSubject}%`);
+      if (filterChapter) query = query.ilike("chapter", `%${filterChapter}%`);
+      if (filterGrade) query = query.ilike("class_grade", `%${filterGrade}%`);
       if (searchQuery) query = query.ilike("question_text", `%${searchQuery}%`);
 
       const { data } = await query;
@@ -55,7 +59,7 @@ export default function QuestionsPage() {
       setLoading(false);
     }
     load();
-  }, [filterType, filterSubject, searchQuery]);
+  }, [filterType, filterSubject, filterChapter, filterGrade, searchQuery]);
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -82,6 +86,8 @@ export default function QuestionsPage() {
   };
 
   const subjects = [...new Set(questions.map((q) => q.subject).filter(Boolean))];
+  const chapters = [...new Set(questions.map((q) => q.chapter).filter(Boolean))] as string[];
+  const grades = [...new Set(questions.map((q) => q.class_grade).filter(Boolean))];
 
   if (loading) {
     return (
@@ -133,6 +139,26 @@ export default function QuestionsPage() {
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
+        <select
+          className={styles.filterSelect}
+          value={filterChapter}
+          onChange={(e) => setFilterChapter(e.target.value)}
+        >
+          <option value="">All Chapters</option>
+          {chapters.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+        <select
+          className={styles.filterSelect}
+          value={filterGrade}
+          onChange={(e) => setFilterGrade(e.target.value)}
+        >
+          <option value="">All Standards</option>
+          {grades.map((g) => (
+            <option key={g} value={g}>{g}</option>
+          ))}
+        </select>
         <div className={styles.resultCount}>{questions.length} question{questions.length !== 1 ? "s" : ""}</div>
       </div>
 
@@ -168,6 +194,8 @@ export default function QuestionsPage() {
               <div className={styles.qType}>{q.question_type.replace("_", " ")}</div>
               <div className={styles.qMarks}>{q.marks ?? "—"}</div>
               <div className={styles.qSubject}>{q.subject}</div>
+              <div className={styles.qChapter}>{q.chapter || "—"}</div>
+              <div className={styles.qGrade}>{q.class_grade || "—"}</div>
               <div className={styles.qActions}>
                 <button
                   className={`${styles.qActionBtn} ${styles.deleteBtn}`}

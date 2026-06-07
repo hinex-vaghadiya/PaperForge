@@ -64,7 +64,7 @@
 }
 .qRow {
   display: grid;
-  grid-template-columns: 40px 1fr 120px 80px 80px 100px;
+  grid-template-columns: 40px 1fr 110px 50px 80px 90px 80px 60px;
   align-items: center;
   gap: var(--space-md);
   padding: var(--space-md) var(--space-lg);
@@ -108,6 +108,19 @@
 .qSubject {
   font-size: 0.78rem;
   color: var(--text-secondary);
+  text-align: center;
+}
+.qChapter {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qGrade {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
   text-align: center;
 }
 .qActions { display: flex; gap: var(--space-xs); justify-content: flex-end; }
@@ -160,6 +173,6 @@
 
 @media (max-width: 768px) {
   .qRow { grid-template-columns: 30px 1fr 80px; }
-  .qType, .qSubject, .qActions { display: none; }
+  .qType, .qSubject, .qChapter, .qGrade, .qActions { display: none; }
   .filters { flex-direction: column; }
 }

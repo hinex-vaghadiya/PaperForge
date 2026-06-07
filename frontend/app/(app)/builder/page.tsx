@@ -15,6 +15,8 @@ interface Question {
   question_type: string;
   marks: number | null;
   subject: string;
+  chapter: string | null;
+  class_grade: string;
 }
 
 interface SectionQuestion {
@@ -62,12 +64,30 @@ export default function BuilderPage() {
   const [pickerSelected, setPickerSelected] = useState<Set<string>>(new Set());
   const [generating, setGenerating] = useState(false);
 
+  /* Picker filters */
+  const [pickerFilterType, setPickerFilterType] = useState("");
+  const [pickerFilterSubject, setPickerFilterSubject] = useState("");
+  const [pickerFilterChapter, setPickerFilterChapter] = useState("");
+  const [pickerFilterGrade, setPickerFilterGrade] = useState("");
+
+  const PICKER_TYPES = [
+    { value: "", label: "All Types" },
+    { value: "mcq", label: "MCQ" },
+    { value: "short_answer", label: "Short Answer" },
+    { value: "long_answer", label: "Long Answer" },
+    { value: "numerical", label: "Numerical" },
+    { value: "fill_blanks", label: "Fill in Blanks" },
+    { value: "true_false", label: "True/False" },
+    { value: "assertion_reason", label: "Assertion & Reason" },
+    { value: "match_following", label: "Match Following" },
+  ];
+
   /* Load approved questions */
   useEffect(() => {
     async function load() {
       const { data } = await supabase
         .from("questions")
-        .select("id, question_text, question_mode, question_type, marks, subject")
+        .select("id, question_text, question_mode, question_type, marks, subject, chapter, class_grade")
         .eq("approval_status", "approved")
         .order("created_at", { ascending: false });
       setAvailableQuestions(data || []);
@@ -127,6 +147,10 @@ export default function BuilderPage() {
   const closePicker = () => {
     setPickerOpen(null);
     setPickerSelected(new Set());
+    setPickerFilterType("");
+    setPickerFilterSubject("");
+    setPickerFilterChapter("");
+    setPickerFilterGrade("");
   };
 
   const togglePickerQ = (id: string) => {
@@ -416,14 +440,50 @@ export default function BuilderPage() {
               <button className="btn btn-ghost btn-sm" onClick={closePicker}>✕</button>
             </div>
             <div className={styles.pickerBody}>
-              {availableQuestions.filter((q) => !usedIds.has(q.id)).length === 0 ? (
+              {/* Picker Filters */}
+              <div className={styles.pickerFilters}>
+                <select value={pickerFilterType} onChange={(e) => setPickerFilterType(e.target.value)} className={styles.pickerFilterSelect}>
+                  {PICKER_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+                <select value={pickerFilterSubject} onChange={(e) => setPickerFilterSubject(e.target.value)} className={styles.pickerFilterSelect}>
+                  <option value="">All Subjects</option>
+                  {[...new Set(availableQuestions.map((q) => q.subject).filter(Boolean))].map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                <select value={pickerFilterChapter} onChange={(e) => setPickerFilterChapter(e.target.value)} className={styles.pickerFilterSelect}>
+                  <option value="">All Chapters</option>
+                  {[...new Set(availableQuestions.map((q) => q.chapter).filter(Boolean))].map((c) => (
+                    <option key={c as string} value={c as string}>{c}</option>
+                  ))}
+                </select>
+                <select value={pickerFilterGrade} onChange={(e) => setPickerFilterGrade(e.target.value)} className={styles.pickerFilterSelect}>
+                  <option value="">All Standards</option>
+                  {[...new Set(availableQuestions.map((q) => q.class_grade).filter(Boolean))].map((g) => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              </div>
+              {availableQuestions
+                .filter((q) => !usedIds.has(q.id))
+                .filter((q) => !pickerFilterType || q.question_type === pickerFilterType)
+                .filter((q) => !pickerFilterSubject || q.subject === pickerFilterSubject)
+                .filter((q) => !pickerFilterChapter || q.chapter === pickerFilterChapter)
+                .filter((q) => !pickerFilterGrade || q.class_grade === pickerFilterGrade)
+                .length === 0 ? (
                 <div className={styles.emptyState}>
-                  <div className={styles.emptyTitle}>No available questions</div>
-                  <div className={styles.emptyDesc}>All questions are already added, or your bank is empty.</div>
+                  <div className={styles.emptyTitle}>No matching questions</div>
+                  <div className={styles.emptyDesc}>Try adjusting your filters, or your bank may be empty.</div>
                 </div>
               ) : (
                 availableQuestions
                   .filter((q) => !usedIds.has(q.id))
+                  .filter((q) => !pickerFilterType || q.question_type === pickerFilterType)
+                  .filter((q) => !pickerFilterSubject || q.subject === pickerFilterSubject)
+                  .filter((q) => !pickerFilterChapter || q.chapter === pickerFilterChapter)
+                  .filter((q) => !pickerFilterGrade || q.class_grade === pickerFilterGrade)
                   .map((q) => (
                     <div
                       key={q.id}

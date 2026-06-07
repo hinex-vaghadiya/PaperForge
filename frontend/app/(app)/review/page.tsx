@@ -92,6 +92,12 @@ export default function ReviewPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [zoom, setZoom] = useState(100);
 
+  /* Bulk approve modal */
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [bulkSubject, setBulkSubject] = useState("");
+  const [bulkChapter, setBulkChapter] = useState("");
+  const [bulkClassGrade, setBulkClassGrade] = useState("");
+
   /* ---------- Fetch batches ---------- */
   useEffect(() => {
     async function load() {
@@ -174,12 +180,37 @@ export default function ReviewPage() {
   };
   const cancelEdit = () => setEditingId(null);
 
-  const approveAll = async () => {
-    const pendingIds = questions.filter((q) => q.approval_status === "pending").map((q) => q.id);
-    if (!pendingIds.length) return;
-    for (const id of pendingIds) {
-      await approve(id);
+  const openApproveModal = () => {
+    if (pendingCount === 0) return;
+    setShowApproveModal(true);
+  };
+
+  const confirmApproveAll = async () => {
+    if (!bulkSubject.trim()) return alert("Please enter a subject.");
+    const pendingQs = questions.filter((q) => q.approval_status === "pending");
+    if (!pendingQs.length) return;
+
+    const updates: Partial<Question> = {
+      approval_status: "approved",
+      subject: bulkSubject.trim(),
+      chapter: bulkChapter.trim() || null,
+      class_grade: bulkClassGrade.trim(),
+    };
+
+    for (const q of pendingQs) {
+      await supabase.from("questions").update(updates).eq("id", q.id);
     }
+
+    setQuestions((prev) =>
+      prev.map((q) =>
+        q.approval_status === "pending" ? { ...q, ...updates } : q
+      )
+    );
+
+    setShowApproveModal(false);
+    setBulkSubject("");
+    setBulkChapter("");
+    setBulkClassGrade("");
   };
 
   /* ---------- Stats ---------- */
@@ -243,7 +274,7 @@ export default function ReviewPage() {
         <div className={styles.headerActions}>
           <button
             className="btn btn-success btn-sm"
-            onClick={approveAll}
+            onClick={openApproveModal}
             disabled={pendingCount === 0}
           >
             ✓ Approve All ({pendingCount})
@@ -398,7 +429,7 @@ export default function ReviewPage() {
                       )}
                     </div>
 
-                    {/* Metadata Editor */}
+                    {/* Type badge */}
                     <div className={styles.metaEditor}>
                       <div className={styles.metaField}>
                         <label>Type</label>
@@ -410,24 +441,6 @@ export default function ReviewPage() {
                             <option key={t.value} value={t.value}>{t.label}</option>
                           ))}
                         </select>
-                      </div>
-                      <div className={styles.metaField}>
-                        <label>Subject</label>
-                        <input
-                          type="text"
-                          value={q.subject}
-                          placeholder="e.g. Physics"
-                          onChange={(e) => updateQuestion(q.id, { subject: e.target.value })}
-                        />
-                      </div>
-                      <div className={styles.metaField}>
-                        <label>Chapter</label>
-                        <input
-                          type="text"
-                          value={q.chapter ?? ""}
-                          placeholder="e.g. Ch 3"
-                          onChange={(e) => updateQuestion(q.id, { chapter: e.target.value || null })}
-                        />
                       </div>
                     </div>
 
@@ -471,6 +484,55 @@ export default function ReviewPage() {
           )}
         </div>
       </div>
+
+      {/* Bulk Approve Modal */}
+      {showApproveModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowApproveModal(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3>Set Metadata for All Questions</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowApproveModal(false)}>✕</button>
+            </div>
+            <div className={styles.modalBody}>
+              <p className={styles.modalDesc}>These values will be applied to all <strong>{pendingCount}</strong> pending questions before approving.</p>
+              <div className={styles.modalField}>
+                <label>Subject *</label>
+                <input
+                  type="text"
+                  value={bulkSubject}
+                  placeholder="e.g. Science, English, Math"
+                  onChange={(e) => setBulkSubject(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className={styles.modalField}>
+                <label>Chapter / Unit</label>
+                <input
+                  type="text"
+                  value={bulkChapter}
+                  placeholder="e.g. Ch 3 - Natural Resources"
+                  onChange={(e) => setBulkChapter(e.target.value)}
+                />
+              </div>
+              <div className={styles.modalField}>
+                <label>Standard / Class</label>
+                <input
+                  type="text"
+                  value={bulkClassGrade}
+                  placeholder="e.g. Class 10, Grade 8"
+                  onChange={(e) => setBulkClassGrade(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowApproveModal(false)}>Cancel</button>
+              <button className="btn btn-success btn-sm" onClick={confirmApproveAll} disabled={!bulkSubject.trim()}>
+                ✓ Approve All {pendingCount} Questions
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
