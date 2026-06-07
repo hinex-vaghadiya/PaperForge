@@ -27,6 +27,7 @@ export default function StoragePage() {
       const { data } = await supabase
         .from("uploaded_files")
         .select("id, batch_id, file_name, storage_path, processing_status, created_at, upload_batches(name)")
+        .neq("storage_path", "deleted")
         .order("created_at", { ascending: false });
 
       const mapped = (data || []).map((f: any) => ({
@@ -83,9 +84,9 @@ export default function StoragePage() {
       return;
     }
 
-    // Delete records from DB
+    // Update records in DB instead of deleting, to preserve Review Queue history
     const ids = toDelete.map((f) => f.id);
-    await supabase.from("uploaded_files").delete().in("id", ids);
+    await supabase.from("uploaded_files").update({ storage_path: "deleted" }).in("id", ids);
 
     setFiles((prev) => prev.filter((f) => !selected.has(f.id)));
     setSelected(new Set());
