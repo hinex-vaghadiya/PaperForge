@@ -132,7 +132,10 @@ export default function ReviewPage() {
 
   /* ---------- Fetch questions for active file ---------- */
   useEffect(() => {
-    if (!files.length) return;
+    if (!files.length) {
+      setQuestions([]);
+      return;
+    }
     const file = files[currentFileIdx];
     if (!file) return;
     async function loadQuestions() {
@@ -148,7 +151,10 @@ export default function ReviewPage() {
 
   /* ---------- Get signed URL for source image ---------- */
   useEffect(() => {
-    if (!files.length) { setImageUrl(null); return; }
+    if (!files.length) {
+      setImageUrl(null);
+      return;
+    }
     const file = files[currentFileIdx];
     if (!file) return;
     async function getUrl() {
@@ -341,8 +347,15 @@ export default function ReviewPage() {
         </div>
       )}
 
-      {/* Two-Column Layout */}
-      <div className={styles.reviewLayout}>
+      {/* Main Content Area */}
+      {files.length === 0 ? (
+        <div className={styles.emptyState} style={{ marginTop: "var(--space-2xl)" }}>
+          <div className={styles.emptyIcon}>🗑️</div>
+          <div className={styles.emptyTitle}>Nothing to review here</div>
+          <div className={styles.emptyDesc}>All files in this batch have been deleted from storage.</div>
+        </div>
+      ) : (
+        <div className={styles.reviewLayout}>
         {/* Left: Source Image */}
         <div className={styles.sourcePanel}>
           <div className={styles.panelHeader}>
@@ -484,7 +497,8 @@ export default function ReviewPage() {
             ))
           )}
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Bulk Approve Modal */}
       {showApproveModal && (
