@@ -123,6 +123,30 @@ export default function BuilderPage() {
     );
   };
 
+  const setGroupMarks = (sectionId: string, startIndex: number, marks: number | null) => {
+    setSections((prev) =>
+      prev.map((s) => {
+        if (s.id !== sectionId) return s;
+        
+        const qType = s.questions[startIndex].question.question_type;
+        const newQuestions = [...s.questions];
+        
+        for (let i = startIndex; i < newQuestions.length; i++) {
+          if (newQuestions[i].question.question_type === qType) {
+            newQuestions[i] = {
+              ...newQuestions[i],
+              question: { ...newQuestions[i].question, marks }
+            };
+          } else {
+            break;
+          }
+        }
+        
+        return { ...s, questions: newQuestions };
+      })
+    );
+  };
+
   const updateQuestionMarks = (sectionId: string, questionId: string, marks: number | null) => {
     setSections((prev) =>
       prev.map((s) =>
@@ -362,23 +386,52 @@ export default function BuilderPage() {
                   const showGroupHeading = !prevQ || prevQ.question.question_type !== sq.question.question_type;
                   const typeLabel = PICKER_TYPES.find(t => t.value === sq.question.question_type)?.label || sq.question.question_type.replace("_", " ").toUpperCase();
 
+                  let groupMarks: number | string = "";
+                  if (showGroupHeading) {
+                    let allSame = true;
+                    const firstMark = sq.question.marks;
+                    for (let i = idx; i < section.questions.length; i++) {
+                      if (section.questions[i].question.question_type !== sq.question.question_type) break;
+                      if (section.questions[i].question.marks !== firstMark) {
+                        allSame = false;
+                        break;
+                      }
+                    }
+                    if (allSame && firstMark !== null && firstMark !== undefined) {
+                      groupMarks = firstMark;
+                    }
+                  }
+
                   return (
                     <div key={sq.question.id + idx} className={styles.questionWrapper}>
                       {showGroupHeading && (
-                        <input
-                          className={styles.qGroupHeadingInput}
-                          value={sq.override_heading ?? typeLabel}
-                          placeholder={typeLabel}
-                          onChange={(e) => {
-                            setSections(prev => prev.map(s => {
-                              if (s.id !== section.id) return s;
-                              return {
-                                ...s,
-                                questions: s.questions.map(q => q.question.id === sq.question.id ? { ...q, override_heading: e.target.value } : q)
-                              };
-                            }));
-                          }}
-                        />
+                        <div className={styles.qGroupHeadingRow}>
+                          <input
+                            className={styles.qGroupHeadingInput}
+                            value={sq.override_heading ?? typeLabel}
+                            placeholder={typeLabel}
+                            onChange={(e) => {
+                              setSections(prev => prev.map(s => {
+                                if (s.id !== section.id) return s;
+                                return {
+                                  ...s,
+                                  questions: s.questions.map(q => q.question.id === sq.question.id ? { ...q, override_heading: e.target.value } : q)
+                                };
+                              }));
+                            }}
+                          />
+                          <div className={styles.groupMarksContainer}>
+                            <input
+                              type="number"
+                              min="1"
+                              max="20"
+                              placeholder="Set"
+                              value={groupMarks}
+                              onChange={(e) => setGroupMarks(section.id, idx, e.target.value ? parseInt(e.target.value) : null)}
+                            />
+                            <span>marks each</span>
+                          </div>
+                        </div>
                       )}
                       <div className={styles.sectionQuestion}>
                         <div className={styles.dragHandle}>⠿</div>

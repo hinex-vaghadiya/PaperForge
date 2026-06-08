@@ -33,12 +33,13 @@ You MUST extract questions from ALL these sections. Do NOT stop after the first 
 RULES FOR EXTRACTION:
 1. Each numbered item (1, 2, 3...) within a section is a SEPARATE question
 2. For "Match the following" — extract the ENTIRE match table as ONE question (include all pairs)
-3. For "Fill in the blanks" — each blank sentence is a SEPARATE question  
+3. For "Fill in the blanks" — each blank sentence is a SEPARATE question. You MUST include the blank line (_____) exactly where it appears in the sentence.
 4. For "True or False" — each statement is a SEPARATE question
 5. For short/long answer sections — each numbered item is a SEPARATE question
-6. DO NOT rewrite, rephrase, or fix any question text — preserve it EXACTLY
-7. DO NOT skip questions — extract ALL of them
-8. Ignore handwritten annotations, marks written by students, page numbers
+6. For Multiple Choice Questions (MCQs) — include ALL the options (e.g., A, B, C, D) directly within the `question_text`.
+7. DO NOT rewrite, rephrase, or fix any question text — preserve it EXACTLY
+8. DO NOT skip questions — extract ALL of them
+9. Ignore handwritten annotations, marks written by students, page numbers
 
 Question types (use exactly these values):
 - mcq
