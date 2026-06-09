@@ -52,13 +52,13 @@ export default function BuilderPage() {
     { id: "sec-1", name: "Section A", questions: [] },
   ]);
   const [paperInfo, setPaperInfo] = useState<PaperInfo>({
-    title: "",
+    title: "Sunday test",
     school_name: "English Pathshala",
     exam_name: "",
     subject: "",
     class_grade: "",
-    duration_minutes: "",
-    max_marks: "",
+    duration_minutes: "60",
+    max_marks: "30",
     instructions: "",
   });
   const [pickerOpen, setPickerOpen] = useState<string | null>(null); // section id

@@ -35,6 +35,7 @@ export default function QuestionsPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [editingQ, setEditingQ] = useState<Question | null>(null);
   const [filterType, setFilterType] = useState("");
   const [filterSubject, setFilterSubject] = useState("");
   const [filterChapter, setFilterChapter] = useState("");
@@ -89,6 +90,31 @@ export default function QuestionsPage() {
   const subjects = [...new Set(questions.map((q) => q.subject).filter(Boolean))];
   const chapters = [...new Set(questions.map((q) => q.chapter).filter(Boolean))] as string[];
   const grades = [...new Set(questions.map((q) => q.class_grade).filter(Boolean))];
+
+  const saveEdit = async () => {
+    if (!editingQ) return;
+    const { error } = await supabase
+      .from("questions")
+      .update({
+        question_text: editingQ.question_text,
+        question_type: editingQ.question_type,
+        marks: editingQ.marks,
+        subject: editingQ.subject,
+        chapter: editingQ.chapter,
+        class_grade: editingQ.class_grade,
+      })
+      .eq("id", editingQ.id);
+
+    if (error) {
+      alert("Failed to save edit: " + error.message);
+      return;
+    }
+
+    setQuestions((prev) =>
+      prev.map((q) => (q.id === editingQ.id ? editingQ : q))
+    );
+    setEditingQ(null);
+  };
 
   if (loading) {
     return (
@@ -199,6 +225,16 @@ export default function QuestionsPage() {
               <div className={styles.qGrade}>{q.class_grade || "—"}</div>
               <div className={styles.qActions}>
                 <button
+                  className={styles.qActionBtn}
+                  title="Edit"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingQ(q);
+                  }}
+                >
+                  ✎
+                </button>
+                <button
                   className={`${styles.qActionBtn} ${styles.deleteBtn}`}
                   title="Delete"
                   onClick={(e) => {
@@ -237,6 +273,94 @@ export default function QuestionsPage() {
             <Link href="/builder" className="btn btn-primary btn-sm">
               Add to Paper →
             </Link>
+          </div>
+        </div>
+      )}
+      {/* Edit Modal */}
+      {editingQ && (
+        <div className={styles.modalOverlay} onClick={() => setEditingQ(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Edit Question</h3>
+              <button className={styles.closeModal} onClick={() => setEditingQ(null)}>
+                ✕
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.modalField}>
+                <label>Question Text</label>
+                <textarea
+                  className={styles.modalTextarea}
+                  value={editingQ.question_text || ""}
+                  onChange={(e) => setEditingQ({ ...editingQ, question_text: e.target.value })}
+                  rows={4}
+                />
+              </div>
+              <div className={styles.modalFieldRow}>
+                <div className={styles.modalField}>
+                  <label>Type</label>
+                  <select
+                    className={styles.modalInput}
+                    value={editingQ.question_type}
+                    onChange={(e) => setEditingQ({ ...editingQ, question_type: e.target.value })}
+                  >
+                    {QUESTION_TYPES.filter((t) => t.value !== "").map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className={styles.modalField}>
+                  <label>Marks</label>
+                  <input
+                    type="number"
+                    className={styles.modalInput}
+                    value={editingQ.marks ?? ""}
+                    onChange={(e) =>
+                      setEditingQ({
+                        ...editingQ,
+                        marks: e.target.value ? parseInt(e.target.value) : null,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+              <div className={styles.modalFieldRow}>
+                <div className={styles.modalField}>
+                  <label>Subject</label>
+                  <input
+                    className={styles.modalInput}
+                    value={editingQ.subject}
+                    onChange={(e) => setEditingQ({ ...editingQ, subject: e.target.value })}
+                  />
+                </div>
+                <div className={styles.modalField}>
+                  <label>Chapter</label>
+                  <input
+                    className={styles.modalInput}
+                    value={editingQ.chapter || ""}
+                    onChange={(e) => setEditingQ({ ...editingQ, chapter: e.target.value })}
+                  />
+                </div>
+                <div className={styles.modalField}>
+                  <label>Class/Grade</label>
+                  <input
+                    className={styles.modalInput}
+                    value={editingQ.class_grade}
+                    onChange={(e) => setEditingQ({ ...editingQ, class_grade: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className={styles.modalFooter}>
+              <button className="btn btn-ghost" onClick={() => setEditingQ(null)}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={saveEdit}>
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
       )}

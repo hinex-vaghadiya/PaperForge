@@ -95,7 +95,28 @@ def build_html(data: dict) -> str:
                     <span class="q-marks">[{q_marks}]</span>
                 </div>"""
             else:
-                formatted_text = (q_text or "").replace("\n", "<br>")
+                if q_type == "mcq":
+                    import re
+                    lines = (q_text or "").split('\n')
+                    formatted_lines = []
+                    opts = []
+                    for line in lines:
+                        if re.match(r'^(\([A-Da-d]\)|[A-Da-d]\.)\s*', line.strip()):
+                            opts.append(line.strip())
+                        else:
+                            if opts:
+                                opts_html = '<div class="mcq-options">' + "".join(f'<div class="mcq-opt">{o}</div>' for o in opts) + '</div>'
+                                formatted_lines.append(opts_html)
+                                opts = []
+                            formatted_lines.append(line)
+                    if opts:
+                        opts_html = '<div class="mcq-options">' + "".join(f'<div class="mcq-opt">{o}</div>' for o in opts) + '</div>'
+                        formatted_lines.append(opts_html)
+                    
+                    formatted_text = "<br>".join(formatted_lines).replace("<br><div", "<div").replace("</div><br>", "</div>")
+                else:
+                    formatted_text = (q_text or "").replace("\n", "<br>")
+
                 sections_html += f"""
                 <div class="question">
                     <span class="q-number">Q{question_number}.</span>
@@ -145,9 +166,9 @@ def build_html(data: dict) -> str:
     <div class="paper">
         <div class="header">
             <div class="school-name">{school}</div>
-            {f'<div class="exam-name">{exam}</div>' if exam else ''}
             <div class="paper-title">{title}</div>
         </div>
+        {f'<div class="name-row">{exam}</div>' if exam else ''}
         <div class="meta-row">{meta_html}</div>
         {instructions_html}
         <hr class="divider">
@@ -164,95 +185,96 @@ def build_html(data: dict) -> str:
 PAPER_CSS = """
 @page {
     size: A4;
-    margin: 20mm 18mm 20mm 18mm;
+    margin: 12mm 15mm 12mm 15mm;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
     font-family: 'Times New Roman', 'Georgia', serif;
-    font-size: 11pt;
-    line-height: 1.6;
+    font-size: 10.5pt;
+    line-height: 1.4;
     color: #1a1a1a;
     max-width: 210mm;
     margin: 0 auto;
-    padding: 20mm 18mm;
+    padding: 0;
     background: white;
 }
 .paper { max-width: 100%; }
 .header {
     text-align: center;
-    margin-bottom: 12pt;
-    padding-bottom: 8pt;
-    border-bottom: 2.5pt double #333;
+    margin-bottom: 8pt;
+    padding-bottom: 6pt;
+    border-bottom: 2pt solid #333;
 }
 .school-name {
-    font-size: 18pt;
+    font-size: 16pt;
     font-weight: bold;
     text-transform: uppercase;
-    letter-spacing: 2pt;
+    letter-spacing: 1.5pt;
     color: #111;
     margin-bottom: 4pt;
 }
-.exam-name {
-    font-size: 12pt;
+.name-row {
+    font-size: 11pt;
     font-weight: bold;
-    color: #444;
-    margin-bottom: 2pt;
+    color: #333;
+    text-align: center;
+    margin-bottom: 4pt;
 }
 .paper-title {
-    font-size: 14pt;
+    font-size: 13pt;
     font-weight: bold;
     color: #222;
-    margin-top: 4pt;
+    margin-top: 2pt;
 }
 .meta-row {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
     gap: 4pt;
-    font-size: 9.5pt;
+    font-size: 9pt;
     color: #444;
-    margin: 10pt 0;
-    padding: 6pt 10pt;
+    margin: 6pt 0;
+    padding: 4pt 8pt;
     background: #f8f8f8;
     border: 0.5pt solid #ddd;
     border-radius: 2pt;
 }
 .instructions {
-    margin: 10pt 0;
-    padding: 8pt 12pt;
-    font-size: 9.5pt;
-    border-left: 3pt solid #666;
+    margin: 6pt 0;
+    padding: 6pt 10pt;
+    font-size: 9pt;
+    border-left: 2pt solid #666;
     background: #fafafa;
 }
-.instructions strong { display: block; margin-bottom: 4pt; font-size: 10pt; }
-.instructions ol { margin-left: 16pt; }
-.instructions li { margin-bottom: 2pt; }
-.divider { border: none; border-top: 1pt solid #ccc; margin: 12pt 0; }
-.section { margin-bottom: 16pt; page-break-inside: avoid; }
+.instructions strong { display: block; margin-bottom: 2pt; font-size: 9.5pt; }
+.instructions ol { margin-left: 14pt; }
+.instructions li { margin-bottom: 1pt; }
+.divider { border: none; border-top: 1pt solid #ccc; margin: 8pt 0; }
+.section { margin-bottom: 10pt; page-break-inside: avoid; }
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6pt 10pt;
+    padding: 4pt 8pt;
     background: #f0f0f0;
     border: 0.5pt solid #ddd;
     border-radius: 2pt;
-    margin-bottom: 10pt;
+    margin-bottom: 6pt;
 }
 .section-name {
-    font-size: 12pt;
+    font-size: 11pt;
     font-weight: bold;
     text-transform: uppercase;
-    letter-spacing: 1pt;
+    letter-spacing: 0.5pt;
 }
-.section-marks { font-size: 9.5pt; font-weight: bold; color: #555; }
+.section-marks { font-size: 9pt; font-weight: bold; color: #555; }
 .q-group-heading {
-    font-size: 10.5pt;
+    font-size: 10pt;
     font-weight: bold;
     color: #444;
-    margin-top: 14pt;
-    margin-bottom: 8pt;
-    padding-bottom: 4pt;
+    margin-top: 10pt;
+    margin-bottom: 6pt;
+    padding-bottom: 2pt;
     border-bottom: 1pt solid #eee;
     text-transform: uppercase;
     letter-spacing: 0.5pt;
@@ -260,21 +282,30 @@ body {
 .question {
     display: flex;
     align-items: flex-start;
-    gap: 8pt;
-    margin-bottom: 10pt;
-    padding: 6pt 0;
+    gap: 6pt;
+    margin-bottom: 6pt;
+    padding: 2pt 0;
     page-break-inside: avoid;
 }
-.q-number { font-weight: bold; min-width: 28pt; color: #333; flex-shrink: 0; }
-.q-body { flex: 1; line-height: 1.65; }
+.q-number { font-weight: bold; min-width: 24pt; color: #333; flex-shrink: 0; }
+.q-body { flex: 1; line-height: 1.45; }
 .q-marks {
-    font-size: 9pt;
+    font-size: 8.5pt;
     font-weight: bold;
     color: #666;
     white-space: nowrap;
     flex-shrink: 0;
 }
-.footer { margin-top: 24pt; text-align: center; }
+.mcq-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4pt 12pt;
+    margin-top: 4pt;
+}
+.mcq-opt {
+    line-height: 1.4;
+}
+.footer { margin-top: 16pt; text-align: center; }
 .footer-line {
     height: 1pt;
     background: linear-gradient(to right, transparent, #999, transparent);
