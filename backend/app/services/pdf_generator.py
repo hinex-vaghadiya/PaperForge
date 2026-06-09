@@ -250,7 +250,7 @@ body {
 .instructions ol { margin-left: 14pt; }
 .instructions li { margin-bottom: 1pt; }
 .divider { border: none; border-top: 1pt solid #ccc; margin: 8pt 0; }
-.section { margin-bottom: 10pt; page-break-inside: avoid; }
+.section { margin-bottom: 10pt; }
 .section-header {
     display: flex;
     justify-content: space-between;
