@@ -98,22 +98,28 @@ export default function AdminPage() {
                   <td>{user.full_name}</td>
                   <td>{user.email || "N/A"}</td>
                   <td>
-                    <select 
-                      className={styles.roleSelect} 
-                      value={user.role} 
-                      onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                    >
-                      <option value="admin">Admin</option>
-                      <option value="teacher">Teacher</option>
-                      <option value="reviewer">Reviewer</option>
-                    </select>
+                    {user.email === "hinexvaghadiya12@gmail.com" ? (
+                      <span style={{ textTransform: "capitalize", fontWeight: 600 }}>{user.role}</span>
+                    ) : (
+                      <select 
+                        className={styles.roleSelect} 
+                        value={user.role} 
+                        onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                      >
+                        <option value="admin">Admin</option>
+                        <option value="teacher">Teacher</option>
+                        <option value="reviewer">Reviewer</option>
+                      </select>
+                    )}
                   </td>
                   <td>{new Date(user.created_at).toLocaleDateString()}</td>
                   <td>
                     <div className={styles.actions}>
-                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(user.id)}>
-                        Remove
-                      </button>
+                      {user.email !== "hinexvaghadiya12@gmail.com" && (
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(user.id)}>
+                          Remove
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
