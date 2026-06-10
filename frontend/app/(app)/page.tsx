@@ -3,7 +3,7 @@ import styles from "./dashboard.module.css";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function Dashboard() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   let uploadsCount = 0;
