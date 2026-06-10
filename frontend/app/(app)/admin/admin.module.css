@@ -47,7 +47,9 @@
   padding: 4px 8px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  background: var(--bg-secondary);
+  background: #acacf3;
+  color: var(--text-primary);
+  font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
   outline: none;
