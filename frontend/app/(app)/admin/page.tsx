@@ -52,17 +52,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleDelete = async (userId: string) => {
-    if (!confirm("Delete this user's profile? Note: This deletes their PaperForge profile data but not their underlying authentication account, which requires Superadmin access.")) return;
-    
-    const { error } = await supabase.from("profiles").delete().eq("id", userId);
-    if (error) {
-      alert("Failed to delete profile: " + error.message);
-    } else {
-      setUsers((prev) => prev.filter((u) => u.id !== userId));
-    }
-  };
-
   if (loading) {
     return <div className={styles.page}>Loading Admin Panel...</div>;
   }
@@ -89,7 +78,6 @@ export default function AdminPage() {
                 <th>Email</th>
                 <th>Role</th>
                 <th>Joined</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -113,15 +101,6 @@ export default function AdminPage() {
                     )}
                   </td>
                   <td>{new Date(user.created_at).toLocaleDateString()}</td>
-                  <td>
-                    <div className={styles.actions}>
-                      {user.email !== "hinexvaghadiya12@gmail.com" && (
-                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(user.id)}>
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  </td>
                 </tr>
               ))}
             </tbody>
