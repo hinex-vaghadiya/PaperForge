@@ -1,0 +1,66 @@
+.page {
+  padding: var(--space-xl);
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.header {
+  margin-bottom: var(--space-lg);
+}
+.title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+  letter-spacing: -0.02em;
+}
+.subtitle {
+  color: var(--text-tertiary);
+  font-size: 1.1rem;
+}
+.tableContainer {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.table th, .table td {
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--border);
+}
+.table th {
+  background: var(--bg-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.table tr:last-child td {
+  border-bottom: none;
+}
+.roleSelect {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  outline: none;
+}
+.roleSelect:focus {
+  border-color: var(--primary);
+}
+.actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+.emptyState {
+  padding: var(--space-2xl);
+  text-align: center;
+  color: var(--text-tertiary);
+}

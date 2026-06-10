@@ -1,12 +1,39 @@
 import Link from "next/link";
 import styles from "./dashboard.module.css";
+import { createClient } from "@/lib/supabase/server";
 
-export default function Dashboard() {
+export default async function Dashboard() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let uploadsCount = 0;
+  let questionsExtractedCount = 0;
+  let approvedCount = 0;
+  let papersCreatedCount = 0;
+  let fullName = "there";
+
+  if (user) {
+    const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
+    if (profile?.full_name) {
+      fullName = profile.full_name.split(" ")[0];
+    }
+
+    const { count: uploads } = await supabase.from("upload_batches").select("*", { count: "exact", head: true }).eq("created_by", user.id);
+    const { count: questions } = await supabase.from("questions").select("*", { count: "exact", head: true }).eq("created_by", user.id);
+    const { count: approved } = await supabase.from("questions").select("*", { count: "exact", head: true }).eq("created_by", user.id).eq("approval_status", "approved");
+    const { count: papers } = await supabase.from("papers").select("*", { count: "exact", head: true }).eq("created_by", user.id);
+
+    uploadsCount = uploads || 0;
+    questionsExtractedCount = questions || 0;
+    approvedCount = approved || 0;
+    papersCreatedCount = papers || 0;
+  }
+
   return (
     <div className={styles.page}>
       {/* Header */}
       <header className={styles.header}>
-        <p className={styles.greeting}>Welcome back 👋</p>
+        <p className={styles.greeting}>Welcome back, {fullName} 👋</p>
         <h1 className={styles.title}>
           <span className={styles.highlight}>PaperForge</span> Dashboard
         </h1>
@@ -19,22 +46,22 @@ export default function Dashboard() {
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
           <div className={styles.statIcon}>📤</div>
-          <div className={styles.statValue}>0</div>
+          <div className={styles.statValue}>{uploadsCount}</div>
           <div className={styles.statLabel}>Uploads</div>
         </div>
         <div className={styles.statCard}>
           <div className={styles.statIcon}>❓</div>
-          <div className={styles.statValue}>0</div>
+          <div className={styles.statValue}>{questionsExtractedCount}</div>
           <div className={styles.statLabel}>Questions Extracted</div>
         </div>
         <div className={styles.statCard}>
           <div className={styles.statIcon}>✅</div>
-          <div className={styles.statValue}>0</div>
+          <div className={styles.statValue}>{approvedCount}</div>
           <div className={styles.statLabel}>Approved</div>
         </div>
         <div className={styles.statCard}>
           <div className={styles.statIcon}>📄</div>
-          <div className={styles.statValue}>0</div>
+          <div className={styles.statValue}>{papersCreatedCount}</div>
           <div className={styles.statLabel}>Papers Created</div>
         </div>
       </div>

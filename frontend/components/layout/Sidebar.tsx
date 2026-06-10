@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import styles from "./Sidebar.module.css";
+import { createClient } from "@/lib/supabase/client";
 
 const navItems = [
   {
@@ -83,11 +84,42 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    label: "Admin Panel",
+    href: "/admin",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+        <circle cx="8.5" cy="7" r="4" />
+        <line x1="20" y1="8" x2="20" y2="14" />
+        <line x1="23" y1="11" x2="17" y2="11" />
+      </svg>
+    ),
+  },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const supabase = createClient();
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  useEffect(() => {
+    async function loadProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+        if (data) setUserProfile(data);
+      }
+    }
+    loadProfile();
+  }, [supabase]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""}`}>
@@ -128,6 +160,9 @@ export function Sidebar() {
       {/* Nav */}
       <nav className={styles.nav}>
         {navItems.map((item) => {
+          if (item.label === "Admin Panel" && userProfile?.role !== "admin") {
+            return null;
+          }
           const isActive = pathname === item.href;
           return (
             <Link
@@ -148,10 +183,25 @@ export function Sidebar() {
       <div className={styles.footer}>
         {!collapsed && (
           <div className={styles.footerInfo}>
-            <span className={styles.footerVersion}>v1.0.0</span>
-            <span className={styles.footerTag}>Hinex PaperForge</span>
+            <div className={styles.avatar}>{userProfile?.full_name?.[0]?.toUpperCase() || "T"}</div>
+            <div className={styles.userInfo}>
+              <div className={styles.userName}>{userProfile?.full_name || "Teacher"}</div>
+              <div className={styles.userRole}>{userProfile?.role || "Free Plan"}</div>
+            </div>
           </div>
         )}
+        <button 
+          className={styles.logoutBtn} 
+          onClick={handleLogout}
+          title={collapsed ? "Log out" : undefined}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          {!collapsed && <span>Log out</span>}
+        </button>
       </div>
     </aside>
   );
